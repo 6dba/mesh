@@ -12,7 +12,7 @@ members = [
     "kosatka-cli",
     "kosatka-master",
     "kosatka-mesh",
-    "kosatka-sdk",
+    "kosatka-mesh-sdk",
 ]
 
 [[package]]
@@ -880,7 +880,7 @@ version = "0.1.0"
 source = { editable = "cli" }
 dependencies = [
     { name = "httpx" },
-    { name = "kosatka-sdk" },
+    { name = "kosatka-mesh-sdk" },
     { name = "pydantic" },
     { name = "python-dotenv" },
     { name = "pyyaml" },
@@ -891,7 +891,7 @@ dependencies = [
 [package.metadata]
 requires-dist = [
     { name = "httpx" },
-    { name = "kosatka-sdk", editable = "sdk" },
+    { name = "kosatka-mesh-sdk", editable = "sdk" },
     { name = "pydantic" },
     { name = "python-dotenv" },
     { name = "pyyaml" },
@@ -938,7 +938,7 @@ dependencies = [
     { name = "kosatka-agent" },
     { name = "kosatka-cli" },
     { name = "kosatka-master" },
-    { name = "kosatka-sdk" },
+    { name = "kosatka-mesh-sdk" },
     { name = "uvicorn" },
 ]
 
@@ -959,7 +959,7 @@ requires-dist = [
     { name = "kosatka-agent", editable = "agent" },
     { name = "kosatka-cli", editable = "cli" },
     { name = "kosatka-master", editable = "master" },
-    { name = "kosatka-sdk", editable = "sdk" },
+    { name = "kosatka-mesh-sdk", editable = "sdk" },
     { name = "uvicorn" },
 ]
 
@@ -976,7 +976,7 @@ dev = [
 ]
 
 [[package]]
-name = "kosatka-sdk"
+name = "kosatka-mesh-sdk"
 version = "0.1.0"
 source = { editable = "sdk" }
 dependencies = [

@@ -12,10 +12,10 @@ pip install -e ./sdk
 
 ```python
 import asyncio
-from kosatka_sdk.client import KosatkaClient
+from KosatkaMesh.client import MeshClient
 
 async def main():
-    client = KosatkaClient(
+    client = MeshClient(
         base_url="http://localhost:8000",
         api_key="your-api-key"
     )
@@ -30,7 +30,7 @@ if __name__ == "__main__":
 
 ## Key Components
 
-- **KosatkaClient**: Main entry point for API interactions.
+- **MeshClient**: Main entry point for API interactions.
 - **Models**: Pydantic models for type-safe data handling (`Node`, `Client`, `Subscription`).
 - **Webhooks**: Utilities for verifying and parsing Kosatka webhooks.
 

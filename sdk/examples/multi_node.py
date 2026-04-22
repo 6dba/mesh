@@ -1,12 +1,12 @@
 import asyncio
 import os
-from kosatka_sdk.client import KosatkaClient
+from KosatkaMesh.client import MeshClient
 
 async def main():
     base_url = os.getenv("KOSATKA_BASE_URL", "http://localhost:8000")
     api_key = os.getenv("KOSATKA_API_KEY", "your-secret-key")
 
-    client = KosatkaClient(base_url=base_url, api_key=api_key)
+    client = MeshClient(base_url=base_url, api_key=api_key)
 
     print("--- Multi-Node Status ---")
     try:

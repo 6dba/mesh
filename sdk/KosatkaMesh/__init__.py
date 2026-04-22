@@ -1,4 +1,4 @@
-from .client import KosatkaClient
+from .client import MeshClient
 from .webhook import KosatkaWebhookHandler
 from .models import (
     Node, NodeCreate, 

@@ -10,14 +10,14 @@ dependencies = [
     "rich",
     "python-dotenv",
     "pyyaml",
-    "kosatka-sdk",
+    "kosatka-mesh-sdk",
 ]
 
 [project.scripts]
 kosatka-mesh = "kosatka_cli.main:app"
 
 [tool.uv.sources]
-kosatka-sdk = { workspace = true }
+kosatka-mesh-sdk = { workspace = true }
 
 [build-system]
 requires = ["hatchling"]

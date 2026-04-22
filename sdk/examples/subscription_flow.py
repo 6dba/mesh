@@ -1,14 +1,14 @@
 import asyncio
 import os
 from datetime import datetime, timedelta
-from kosatka_sdk.client import KosatkaClient
-from kosatka_sdk.models import ClientCreate, SubscriptionCreate
+from KosatkaMesh.client import MeshClient
+from KosatkaMesh.models import ClientCreate, SubscriptionCreate
 
 async def main():
     base_url = os.getenv("KOSATKA_BASE_URL", "http://localhost:8000")
     api_key = os.getenv("KOSATKA_API_KEY", "your-secret-key")
 
-    client = KosatkaClient(base_url=base_url, api_key=api_key)
+    client = MeshClient(base_url=base_url, api_key=api_key)
 
     try:
         # 1. Create a client (or get existing)

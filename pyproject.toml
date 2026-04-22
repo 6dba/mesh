@@ -6,7 +6,7 @@ requires-python = ">=3.10"
 dependencies = [
     "kosatka-master",
     "kosatka-agent",
-    "kosatka-sdk",
+    "kosatka-mesh-sdk",
     "kosatka-cli",
     "uvicorn",
 ]
@@ -25,7 +25,7 @@ members = [
 [tool.uv.sources]
 kosatka-master = { workspace = true }
 kosatka-agent = { workspace = true }
-kosatka-sdk = { workspace = true }
+kosatka-mesh-sdk = { workspace = true }
 kosatka-cli = { workspace = true }
 
 [build-system]

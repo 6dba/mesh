@@ -7,7 +7,7 @@ from .models import (
 )
 from .exceptions import KosatkaAPIError, KosatkaAuthError
 
-class KosatkaClient:
+class MeshClient:
     def __init__(self, base_url: str, api_key: str, timeout: float = 10.0):
         self.base_url = base_url.rstrip("/")
         self.api_key = api_key

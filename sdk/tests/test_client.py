@@ -1,12 +1,12 @@
 import pytest
 import respx
 from httpx import Response
-from kosatka_sdk.client import KosatkaClient
-from kosatka_sdk.models import Node, NodeCreate
+from KosatkaMesh.client import MeshClient
+from KosatkaMesh.models import Node, NodeCreate
 
 @pytest.fixture
 def client():
-    return KosatkaClient(base_url="http://api.test", api_key="test-key")
+    return MeshClient(base_url="http://api.test", api_key="test-key")
 
 @respx.mock
 @pytest.mark.asyncio
@@ -52,7 +52,7 @@ async def test_register_node(client):
 async def test_api_error(client):
     respx.get("http://api.test/api/v1/nodes").mock(return_value=Response(500, text="Internal Server Error"))
     
-    from kosatka_sdk.exceptions import KosatkaAPIError
+    from KosatkaMesh.exceptions import KosatkaAPIError
     with pytest.raises(KosatkaAPIError) as exc:
         await client.list_nodes()
     assert exc.value.status_code == 500

@@ -1,12 +1,14 @@
 # 🐋 KOSATKA Mesh
+<div align="center">
 
-![KOSATKA Mesh Banner](assets/banner.png)
-
+![KOSATKA Mesh](./assets/kosatka-mesh.png)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Python: 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
 [![uv](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/uv/main/assets/badge/v0.json)](https://github.com/astral-sh/uv)
 
 **KOSATKA Mesh** is a professional-grade centralized control plane for managing a global distributed VPN infrastructure through a unified API.
+
+</div>
 
 ---
 
@@ -79,9 +81,9 @@ kosatka-mesh nodes provision --name "user-laptop" --protocol "amneziawg"
 
 **Via Python SDK**:
 ```python
-from kosatka_sdk import KosatkaClient
+from KosatkaMesh import MeshClient
 
-client = KosatkaClient(base_url="http://master-ip:8000", api_key="my-secure-master-key")
+client = MeshClient(base_url="http://master-ip:8000", api_key="my-secure-master-key")
 
 # Provision a new client profile on any available node supporting AmneziaWG
 profile = await client.provision(
@@ -104,11 +106,11 @@ Here is how you can manage VPN subscriptions programmatically in your Python pro
 
 ```python
 import asyncio
-from kosatka_sdk import KosatkaClient
+from KosatkaMesh import MeshClient
 
 async def main():
     # Initialize the client pointing to your Master Node
-    client = KosatkaClient(
+    client = MeshClient(
         base_url="https://your-master-domain.com", 
         api_key="your-master-admin-key"
     )
@@ -140,7 +142,7 @@ if __name__ == "__main__":
 For real-time updates (e.g., notifying a user when their subscription is about to expire), you can use the built-in webhook utility:
 
 ```python
-from kosatka_sdk.webhook import KosatkaWebhookHandler
+from KosatkaMesh.webhook import KosatkaWebhookHandler
 
 webhook = KosatkaWebhookHandler(secret="your-webhook-secret")
 
