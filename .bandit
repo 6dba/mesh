@@ -1,0 +1,3 @@
+[bandit]
+exclude: .venv,venv,tests,master/tests,agent/tests,sdk/tests,cli/tests
+skips: B101,B104

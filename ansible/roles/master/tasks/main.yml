@@ -1,0 +1,18 @@
+---
+- name: Create master directory
+  file:
+    path: /opt/kosatka/master
+    state: directory
+
+- name: Copy master configuration
+  copy:
+    content: |
+      KOSATKA_API_KEY={{ kosatka_api_key }}
+      KOSATKA_DATABASE_URL={{ kosatka_database_url }}
+    dest: /opt/kosatka/master/.env
+
+- name: Start master services
+  command: docker-compose up -d
+  args:
+    chdir: /opt/kosatka/master
+  failed_when: false

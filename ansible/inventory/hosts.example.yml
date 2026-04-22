@@ -1,0 +1,10 @@
+all:
+  children:
+    master:
+      hosts:
+        master.example.com:
+          ansible_user: root
+    nodes:
+      hosts:
+        node1.example.com:
+          ansible_user: root

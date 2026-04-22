@@ -1,0 +1,17 @@
+version: '3.8'
+
+services:
+  master:
+    build:
+      context: ./master
+    ports:
+      - "8000:8000"
+    volumes:
+      - data_master:/app/data
+    environment:
+      - KOSATKA_API_KEY=${KOSATKA_API_KEY}
+      - KOSATKA_DATABASE_URL=sqlite+aiosqlite:///./data/kosatka.db
+    restart: always
+
+volumes:
+  data_master:
