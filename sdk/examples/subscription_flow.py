@@ -1,8 +1,10 @@
 import asyncio
 import os
 from datetime import datetime, timedelta
+
 from KosatkaMesh.client import MeshClient
 from KosatkaMesh.models import ClientCreate, SubscriptionCreate
+
 
 async def main():
     base_url = os.getenv("KOSATKA_BASE_URL", "http://localhost:8000")
@@ -18,20 +20,21 @@ async def main():
             sdk_client = await client.get_client(external_id)
             print(f"Found existing client ID: {sdk_client.id}")
         except Exception:
-            sdk_client = await client.create_client(ClientCreate(
-                external_id=external_id,
-                email="user@example.com"
-            ))
+            sdk_client = await client.create_client(
+                ClientCreate(external_id=external_id, email="user@example.com")
+            )
             print(f"Created new client ID: {sdk_client.id}")
 
         # 2. Create a subscription
         print("--- Creating Subscription ---")
         expires_at = datetime.now() + timedelta(days=30)
-        sub = await client.create_subscription(SubscriptionCreate(
-            client_id=sdk_client.id,
-            plan_name="premium_monthly",
-            expires_at=expires_at
-        ))
+        sub = await client.create_subscription(
+            SubscriptionCreate(
+                client_id=sdk_client.id,
+                plan_name="premium_monthly",
+                expires_at=expires_at,
+            )
+        )
         print(f"Subscription created: ID {sub.id}, Expires {sub.expires_at}")
 
         # 3. List client subscriptions
@@ -42,6 +45,7 @@ async def main():
 
     except Exception as e:
         print(f"Error: {e}")
+
 
 if __name__ == "__main__":
     asyncio.run(main())

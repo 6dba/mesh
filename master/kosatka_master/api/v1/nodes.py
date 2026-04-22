@@ -1,13 +1,15 @@
-from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
 from typing import List
-from pydantic import BaseModel
+
+from fastapi import APIRouter, Depends, HTTPException
 from kosatka_master.database import get_db
 from kosatka_master.models.node import Node
 from kosatka_master.security import get_api_key
+from pydantic import BaseModel
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 router = APIRouter(prefix="/nodes", tags=["nodes"], dependencies=[Depends(get_api_key)])
+
 
 class NodeSchema(BaseModel):
     id: int
@@ -20,15 +22,18 @@ class NodeSchema(BaseModel):
     class Config:
         from_attributes = True
 
+
 class NodeCreate(BaseModel):
     name: str
     address: str
     provider_type: str = "agent"
 
+
 @router.get("/", response_model=List[NodeSchema])
 async def get_nodes(db: AsyncSession = Depends(get_db)):
     result = await db.execute(select(Node))
     return result.scalars().all()
+
 
 @router.post("/", response_model=NodeSchema)
 async def create_node(node_data: NodeCreate, db: AsyncSession = Depends(get_db)):
@@ -37,6 +42,7 @@ async def create_node(node_data: NodeCreate, db: AsyncSession = Depends(get_db))
     await db.commit()
     await db.refresh(node)
     return node
+
 
 @router.delete("/{node_id}")
 async def delete_node(node_id: int, db: AsyncSession = Depends(get_db)):

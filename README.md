@@ -111,7 +111,7 @@ from KosatkaMesh import MeshClient
 async def main():
     # Initialize the client pointing to your Master Node
     client = MeshClient(
-        base_url="https://your-master-domain.com", 
+        base_url="https://your-master-domain.com",
         api_key="your-master-admin-key"
     )
 

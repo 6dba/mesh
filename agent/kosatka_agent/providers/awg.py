@@ -1,6 +1,8 @@
-from .base import BaseAgentProvider
-from typing import List, Dict, Any
 import asyncio
+from typing import Any, Dict, List
+
+from .base import BaseAgentProvider
+
 
 class AmneziaWGProvider(BaseAgentProvider):
     def __init__(self, config_path: str):

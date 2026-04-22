@@ -1,6 +1,8 @@
 import asyncio
 import os
+
 from KosatkaMesh.client import MeshClient
+
 
 async def main():
     base_url = os.getenv("KOSATKA_BASE_URL", "http://localhost:8000")
@@ -11,7 +13,7 @@ async def main():
     print("--- Multi-Node Status ---")
     try:
         nodes = await client.list_nodes()
-        
+
         if not nodes:
             print("No nodes registered.")
             return
@@ -31,6 +33,7 @@ async def main():
 
     except Exception as e:
         print(f"Error: {e}")
+
 
 if __name__ == "__main__":
     asyncio.run(main())

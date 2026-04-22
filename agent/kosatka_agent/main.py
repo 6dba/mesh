@@ -1,14 +1,16 @@
-from fastapi import FastAPI, Depends, HTTPException
+from fastapi import Depends, FastAPI, HTTPException
+
 from .config import settings
-from .security import get_api_key
 from .docs import router as docs_router
-from .providers.wireguard import WireGuardProvider
-from .providers.marzban import MarzbanProvider
 from .providers.awg import AmneziaWGProvider
-from .providers.xray import XrayProvider
 from .providers.base import BaseAgentProvider
+from .providers.marzban import MarzbanProvider
+from .providers.wireguard import WireGuardProvider
+from .providers.xray import XrayProvider
+from .security import get_api_key
 
 app = FastAPI(title="Kosatka Mesh Agent")
+
 
 def get_provider() -> BaseAgentProvider:
     if settings.provider_type == "wireguard":
@@ -19,7 +21,7 @@ def get_provider() -> BaseAgentProvider:
         return MarzbanProvider(
             url=settings.marzban_url,
             username=settings.marzban_username,
-            password=settings.marzban_password
+            password=settings.marzban_password,
         )
     elif settings.provider_type == "awg":
         return AmneziaWGProvider(config_path=settings.awg_config_path)
@@ -28,19 +30,24 @@ def get_provider() -> BaseAgentProvider:
     else:
         raise ValueError(f"Unknown provider type: {settings.provider_type}")
 
+
 # Initialize provider
 provider = get_provider()
+
 
 @app.get("/health")
 async def health():
     return {"status": "ok", "provider": settings.provider_type}
 
+
 # Include documentation router
 app.include_router(docs_router)
+
 
 @app.get("/clients", dependencies=[Depends(get_api_key)])
 async def get_clients():
     return await provider.get_clients()
+
 
 @app.get("/clients/{client_id}", dependencies=[Depends(get_api_key)])
 async def get_client(client_id: str):
@@ -49,9 +56,11 @@ async def get_client(client_id: str):
         raise HTTPException(status_code=404, detail="Client not found")
     return client
 
+
 @app.post("/clients", dependencies=[Depends(get_api_key)])
 async def create_client(client_data: dict):
     return await provider.create_client(client_data)
+
 
 @app.delete("/clients/{client_id}", dependencies=[Depends(get_api_key)])
 async def delete_client(client_id: str):
@@ -60,10 +69,12 @@ async def delete_client(client_id: str):
         raise HTTPException(status_code=404, detail="Client not found or could not be deleted")
     return {"status": "deleted"}
 
+
 @app.get("/clients/{client_id}/config", dependencies=[Depends(get_api_key)])
 async def get_client_config(client_id: str):
     config = await provider.get_client_config(client_id)
     return {"config": config}
+
 
 @app.get("/clients/{client_id}/stats", dependencies=[Depends(get_api_key)])
 async def get_client_stats(client_id: str):

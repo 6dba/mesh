@@ -1,6 +1,9 @@
-from .base import BaseAgentProvider
-from typing import List, Dict, Any
+from typing import Any, Dict, List
+
 import httpx
+
+from .base import BaseAgentProvider
+
 
 class MarzbanProvider(BaseAgentProvider):
     def __init__(self, url: str, username: str, password: str):
@@ -15,7 +18,7 @@ class MarzbanProvider(BaseAgentProvider):
         async with httpx.AsyncClient() as client:
             resp = await client.post(
                 f"{self.url}/api/admin/token",
-                data={"username": self.username, "password": self.password}
+                data={"username": self.username, "password": self.password},
             )
             resp.raise_for_status()
             self.token = resp.json()["access_token"]

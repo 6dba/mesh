@@ -1,8 +1,10 @@
-from fastapi import Security, HTTPException, status
+from fastapi import HTTPException, Security, status
 from fastapi.security import APIKeyHeader
+
 from .config import settings
 
 api_key_header = APIKeyHeader(name="X-Kosatka-Key", auto_error=False)
+
 
 async def get_api_key(api_key_header: str = Security(api_key_header)):
     if api_key_header == settings.api_key:

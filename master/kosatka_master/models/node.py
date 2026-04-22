@@ -1,11 +1,14 @@
-from sqlalchemy import String, Integer, DateTime, Boolean, JSON
-from sqlalchemy.orm import Mapped, mapped_column
 from datetime import datetime
+
+from sqlalchemy import JSON, Boolean, DateTime, String
+from sqlalchemy.orm import Mapped, mapped_column
+
 from ..database import Base
+
 
 class Node(Base):
     __tablename__ = "nodes"
-    
+
     id: Mapped[int] = mapped_column(primary_key=True)
     name: Mapped[str] = mapped_column(String(255), unique=True)
     address: Mapped[str] = mapped_column(String(255))

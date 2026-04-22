@@ -1,10 +1,12 @@
-import typer
-import subprocess
 import os
+import subprocess
+
+import typer
 from rich.console import Console
 
 app = typer.Typer(help="Deploy Kosatka components using Ansible")
 console = Console()
+
 
 def run_ansible(extra_vars: str = None, tags: str = None):
     # This assumes we are running from the project root or have access to the ansible dir
@@ -30,17 +32,22 @@ def run_ansible(extra_vars: str = None, tags: str = None):
     except subprocess.CalledProcessError as e:
         console.print(f"[bold red]Deployment failed with exit code {e.returncode}[/bold red]")
     except FileNotFoundError:
-        console.print("[bold red]Error: 'ansible-playbook' not found. Please install Ansible.[/bold red]")
+        console.print(
+            "[bold red]Error: 'ansible-playbook' not found. Please install Ansible.[/bold red]"
+        )
+
 
 @app.command("all")
 def deploy_all():
     """Deploy everything (Master + all Nodes)"""
     run_ansible()
 
+
 @app.command("master")
 def deploy_master():
     """Deploy only the Master node"""
     run_ansible(tags="master")
+
 
 @app.command("nodes")
 def deploy_nodes():

@@ -1,5 +1,7 @@
-from typing import List, Dict, Any
+from typing import Any, Dict, List
+
 from .base import BaseAgentProvider
+
 
 class XrayProvider(BaseAgentProvider):
     async def get_clients(self) -> List[Dict[str, Any]]:
