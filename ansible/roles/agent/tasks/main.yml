@@ -1,0 +1,8 @@
+---
+- name: Create agent directory
+  file:
+    path: /opt/kosatka/agent
+    state: directory
+
+- name: Setup Agent
+  command: echo "Setting up KOSATKA Agent"

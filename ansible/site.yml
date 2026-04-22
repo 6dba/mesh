@@ -1,0 +1,21 @@
+---
+- name: Deploy common and firewall to all hosts
+  hosts: all
+  become: yes
+  roles:
+    - common
+    - firewall
+
+- name: Deploy KOSATKA Master
+  hosts: master
+  become: yes
+  roles:
+    - master
+
+- name: Deploy KOSATKA Agent and Providers
+  hosts: nodes
+  become: yes
+  roles:
+    - agent
+    - marzban
+    - awg

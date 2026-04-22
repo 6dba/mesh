@@ -1,0 +1,27 @@
+[project]
+name = "kosatka-cli"
+version = "0.1.0"
+description = "Kosatka Mesh CLI"
+requires-python = ">=3.10"
+dependencies = [
+    "typer[all]",
+    "httpx",
+    "pydantic",
+    "rich",
+    "python-dotenv",
+    "pyyaml",
+    "kosatka-sdk",
+]
+
+[project.scripts]
+kosatka-mesh = "kosatka_cli.main:app"
+
+[tool.uv.sources]
+kosatka-sdk = { workspace = true }
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["kosatka_cli"]

@@ -1,0 +1,25 @@
+version: '3.8'
+
+services:
+  master:
+    build:
+      context: ./master
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./master:/app
+      - data_master:/app/data
+    environment:
+      - KOSATKA_API_KEY=dev-key
+      - KOSATKA_DATABASE_URL=sqlite+aiosqlite:///./data/kosatka.db
+    command: uvicorn kosatka_master.main:app --host 0.0.0.1 --port 8000 --reload
+
+  agent-mock:
+    image: alpine
+    command: sh -c "while true; do echo 'Mock Agent heartbeat'; sleep 60; done"
+    environment:
+      - KOSATKA_MASTER_URL=http://master:8000
+      - KOSATKA_API_KEY=dev-key
+
+volumes:
+  data_master:

@@ -1,0 +1,41 @@
+import typer
+import asyncio
+import httpx
+from rich.console import Console
+from .config import load_config
+from .api import APIClient
+
+console = Console()
+
+async def run_diagnostics():
+    config = load_config()
+    console.print(f"[bold cyan]Kosatka Doctor - Diagnostics[/bold cyan]\n")
+
+    # 1. Check config
+    console.print("[yellow]Checking configuration...[/yellow]")
+    if not config.api_key:
+        console.print("[red]✗ API Key not set. Use 'kosatka login' or edit ~/.kosatka/config.json[/red]")
+    else:
+        console.print("[green]✓ API Key found[/green]")
+
+    # 2. Check Master connectivity
+    console.print(f"[yellow]Checking connectivity to {config.base_url}...[/yellow]")
+    try:
+        async with httpx.AsyncClient() as client:
+            response = await client.get(f"{config.base_url}/health")
+            if response.status_code == 200:
+                console.print(f"[green]✓ Master is reachable (status 200)[/green]")
+            else:
+                console.print(f"[red]✗ Master returned status {response.status_code}[/red]")
+    except Exception as e:
+        console.print(f"[red]✗ Cannot reach Master: {e}[/red]")
+
+    # 3. Check API Authentication
+    if config.api_key:
+        console.print("[yellow]Checking API authentication...[/yellow]")
+        api = APIClient()
+        try:
+            await api.get_stats()
+            console.print("[green]✓ API authentication successful[/green]")
+        except Exception as e:
+            console.print(f"[red]✗ API authentication failed: {e}[/red]")

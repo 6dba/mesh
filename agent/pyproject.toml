@@ -1,0 +1,20 @@
+[project]
+name = "kosatka-agent"
+version = "0.1.0"
+description = "Kosatka Mesh Agent"
+requires-python = ">=3.10"
+dependencies = [
+    "fastapi",
+    "uvicorn",
+    "pydantic",
+    "pydantic-settings",
+    "httpx",
+    "python-multipart",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["kosatka_agent"]

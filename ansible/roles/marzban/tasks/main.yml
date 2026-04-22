@@ -1,0 +1,3 @@
+---
+- name: Setup Marzban
+  command: echo "Setting up Marzban provider"

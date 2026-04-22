@@ -1,0 +1,35 @@
+import pytest
+from unittest.mock import patch, AsyncMock, MagicMock
+from kosatka_master.scheduler import sync_nodes_job, check_expirations_job
+
+@pytest.mark.asyncio
+async def test_sync_nodes_job():
+    with patch("kosatka_master.scheduler.SessionLocal") as mock_session_cls, \
+         patch("kosatka_master.scheduler.NodeManager") as mock_manager_cls:
+        
+        mock_db = AsyncMock()
+        mock_session_cls.return_value.__aenter__.return_value = mock_db
+        
+        mock_manager = mock_manager_cls.return_value
+        mock_manager.sync_all_nodes = AsyncMock()
+        
+        await sync_nodes_job()
+        
+        mock_manager_cls.assert_called_once_with(mock_db)
+        mock_manager.sync_all_nodes.assert_called_once()
+
+@pytest.mark.asyncio
+async def test_check_expirations_job():
+    with patch("kosatka_master.scheduler.SessionLocal") as mock_session_cls, \
+         patch("kosatka_master.scheduler.SubscriptionEngine") as mock_engine_cls:
+        
+        mock_db = AsyncMock()
+        mock_session_cls.return_value.__aenter__.return_value = mock_db
+        
+        mock_engine = mock_engine_cls.return_value
+        mock_engine.check_expirations = AsyncMock()
+        
+        await check_expirations_job()
+        
+        mock_engine_cls.assert_called_once_with(mock_db)
+        mock_engine.check_expirations.assert_called_once()

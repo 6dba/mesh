@@ -1,0 +1,12 @@
+---
+- name: Install common packages
+  apt:
+    name:
+      - curl
+      - git
+      - htop
+      - ufw
+      - docker.io
+      - docker-compose
+    state: present
+    update_cache: yes
