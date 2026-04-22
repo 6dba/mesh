@@ -22,12 +22,12 @@ install:
 	uv pip install -e .
 
 test:
-	uv run pytest master/tests agent/tests cli/tests sdk/tests --cov
+	uv run pytest --cov=kosatka_master --cov=kosatka_agent --cov=KosatkaMesh --cov=kosatka_cli
 
 lint:
-	uv run flake8 .
 	uv run black --check .
 	uv run isort --check-only .
+	uv run flake8 master agent sdk cli
 
 master:
 	uv run kosatka-mesh master run
