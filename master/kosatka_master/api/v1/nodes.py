@@ -8,6 +8,7 @@ from kosatka_master.security import get_api_key
 from kosatka_master.services.providers.agent_provider import AgentNodeProvider
 from pydantic import BaseModel
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 router = APIRouter(prefix="/nodes", tags=["nodes"], dependencies=[Depends(get_api_key)])
@@ -39,9 +40,35 @@ async def get_nodes(db: AsyncSession = Depends(get_db)):
 
 @router.post("/", response_model=NodeSchema)
 async def create_node(node_data: NodeCreate, db: AsyncSession = Depends(get_db)):
+    # Upsert semantics so re-running ansible against the same node is
+    # idempotent. Without this, the unique constraint on Node.name raises
+    # IntegrityError on commit → FastAPI leaks a 500, and the ansible
+    # playbook dies on every re-run past the first.
+    existing_res = await db.execute(select(Node).where(Node.name == node_data.name))
+    existing = existing_res.scalar_one_or_none()
+    if existing is not None:
+        # Refresh address/provider_type in case the node was rebuilt with a
+        # new IP or reprovisioned as a different protocol.
+        existing.address = node_data.address
+        existing.provider_type = node_data.provider_type
+        existing.is_active = True
+        await db.commit()
+        await db.refresh(existing)
+        return existing
+
     node = Node(**node_data.model_dump())
     db.add(node)
-    await db.commit()
+    try:
+        await db.commit()
+    except IntegrityError as exc:
+        # Race: another caller inserted the same name between our SELECT
+        # and INSERT. Roll back and resolve by re-reading.
+        await db.rollback()
+        race_res = await db.execute(select(Node).where(Node.name == node_data.name))
+        winner = race_res.scalar_one_or_none()
+        if winner is None:
+            raise HTTPException(status_code=409, detail=f"Node create conflict: {exc}") from exc
+        return winner
     await db.refresh(node)
     return node
 

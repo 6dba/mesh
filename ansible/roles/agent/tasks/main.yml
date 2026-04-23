@@ -65,6 +65,9 @@
       name: "{{ inventory_hostname }}"
       address: "http://{{ ansible_host | default(inventory_hostname) }}:{{ agent_port | default(8001) }}"
       provider_type: "{{ kosatka_provider_type | default('awg') }}"
+    # 200 = existing node updated in-place (ansible re-run); 201 = new
+    # node inserted. Master upserts by name so 409 is not expected in
+    # practice but we keep it listed for safety against API changes.
     status_code: [200, 201, 409]
   delegate_to: localhost
   become: false
