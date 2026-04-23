@@ -125,9 +125,19 @@ async def _pick_node(db: AsyncSession, protocol: str, node_id: Optional[int]) ->
 
 async def _call_agent(node: Node, method: str, path: str, **kwargs: Any) -> Dict[str, Any]:
     url = f"{node.address.rstrip('/')}{path}"
-    headers = {"X-Kosatka-Key": settings.api_key}
-    async with httpx.AsyncClient(timeout=10.0) as client:
-        resp = await client.request(method, url, headers=headers, **kwargs)
+    # Use the dedicated agent key so clients talking to master and master
+    # talking to agent can rotate independently.
+    headers = {"X-Kosatka-Key": settings.effective_agent_api_key()}
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            resp = await client.request(method, url, headers=headers, **kwargs)
+    except httpx.HTTPError as exc:
+        # ConnectError / TimeoutException / etc. — translate to a clean 502
+        # instead of leaking the raw traceback as a 500.
+        raise HTTPException(
+            status_code=502,
+            detail=f"Agent {node.name!r} unreachable: {exc}",
+        ) from exc
     if resp.status_code >= 400:
         raise HTTPException(
             status_code=502,

@@ -25,7 +25,7 @@ class NodeManager:
 
         # In a real app, we'd use specialized providers
         # For now, let's just use the agent provider logic
-        provider = AgentNodeProvider(settings.api_key)
+        provider = AgentNodeProvider(settings.effective_agent_api_key())
 
         for node in nodes:
             is_up = await provider.sync_node(node.address)
