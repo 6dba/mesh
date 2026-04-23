@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 
 from sqlalchemy import update
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -18,7 +18,9 @@ class SubscriptionEngine:
         return subscription
 
     async def check_expirations(self):
-        now = datetime.utcnow()
+        # datetime.utcnow() is deprecated in Python 3.12; use a timezone-aware
+        # UTC timestamp so comparisons against tz-aware DB columns stay correct.
+        now = datetime.now(timezone.utc).replace(tzinfo=None)
         query = (
             update(Subscription)
             .where(Subscription.expires_at < now)

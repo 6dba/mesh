@@ -15,13 +15,11 @@ class NodeCreate(NodeBase):
 
 
 class Node(NodeBase):
-    model_config = ConfigDict(from_attributes=True)
+    model_config = ConfigDict(from_attributes=True, extra="allow")
 
     id: int
-    status: str
-    last_seen: datetime
-    is_active: bool
-    metadata_json: Dict[str, Any]
+    status: str = "offline"
+    is_active: bool = True
 
 
 class ClientBase(BaseModel):
@@ -34,11 +32,32 @@ class ClientCreate(ClientBase):
 
 
 class Client(ClientBase):
-    model_config = ConfigDict(from_attributes=True)
+    """SDK-side client record.
+
+    `config_text`, `address`, `public_key`, `node_id`, `provider_type`
+    are populated by `provision()` but absent from the plain `/clients`
+    CRUD responses; they are optional here so both code paths parse.
+    """
+
+    model_config = ConfigDict(from_attributes=True, extra="allow")
 
     id: int
-    is_active: bool
-    created_at: datetime
+    is_active: bool = True
+    created_at: Optional[datetime] = None
+
+    # Provisioning extras — present after a provision() call.
+    config_text: Optional[str] = None
+    address: Optional[str] = None
+    public_key: Optional[str] = None
+    node_id: Optional[int] = None
+    provider_type: Optional[str] = None
+
+
+class ProvisionRequest(BaseModel):
+    external_id: str
+    email: Optional[str] = None
+    protocol: str = "awg"
+    node_id: Optional[int] = None
 
 
 class SubscriptionBase(BaseModel):

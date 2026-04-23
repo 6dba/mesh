@@ -1,0 +1,22 @@
+[Interface]
+PrivateKey = {{ awg_server_private_key }}
+Address = {{ awg_server_address | default('10.8.0.1/24') }}
+ListenPort = {{ awg_listen_port | default(51820) }}
+
+# AmneziaWG obfuscation parameters. Defaults match the AmneziaVPN
+# public recommendation for junk packet shaping; override per-inventory.
+Jc = {{ awg_jc | default(4) }}
+Jmin = {{ awg_jmin | default(40) }}
+Jmax = {{ awg_jmax | default(70) }}
+S1 = {{ awg_s1 | default(50) }}
+S2 = {{ awg_s2 | default(100) }}
+H1 = {{ awg_h1 | default(1)  }}
+H2 = {{ awg_h2 | default(2)  }}
+H3 = {{ awg_h3 | default(3)  }}
+H4 = {{ awg_h4 | default(4)  }}
+
+PostUp   = iptables -A FORWARD -i %i -j ACCEPT; iptables -t nat -A POSTROUTING -o {{ awg_upstream_iface | default('eth0') }} -j MASQUERADE
+PostDown = iptables -D FORWARD -i %i -j ACCEPT; iptables -t nat -D POSTROUTING -o {{ awg_upstream_iface | default('eth0') }} -j MASQUERADE
+
+# Peers are added/removed at runtime by the agent via `awg set wg0 peer ...`.
+# Do not add static peers here unless you manage them out-of-band.

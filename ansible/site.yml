@@ -1,21 +1,48 @@
 ---
-- name: Deploy common and firewall to all hosts
+# Single entry-point playbook for KOSATKA Mesh.
+#
+#   ansible-playbook -i inventory/hosts.yml site.yml
+#
+# Hosts in the `master` group become the control-plane; hosts in `nodes`
+# install the agent plus whichever VPN provider is declared by
+# `kosatka_provider_type` (awg / wireguard / marzban / xray).
+
+- name: Base hardening and Docker install on every host
   hosts: all
-  become: yes
+  become: true
   roles:
     - common
     - firewall
 
-- name: Deploy KOSATKA Master
+- name: Deploy KOSATKA master
   hosts: master
-  become: yes
+  become: true
   roles:
     - master
 
-- name: Deploy KOSATKA Agent and Providers
+- name: Install AmneziaWG on nodes that declare it
   hosts: nodes
-  become: yes
+  become: true
+  roles:
+    - role: awg
+      when: (kosatka_provider_type | default('awg')) in ['awg', 'amneziawg']
+
+- name: Install vanilla WireGuard on nodes that declare it
+  hosts: nodes
+  become: true
+  roles:
+    - role: wireguard
+      when: (kosatka_provider_type | default('')) == 'wireguard'
+
+- name: Install Marzban on nodes that declare it
+  hosts: nodes
+  become: true
+  roles:
+    - role: marzban
+      when: (kosatka_provider_type | default('')) == 'marzban'
+
+- name: Deploy the KOSATKA agent on every node and register it
+  hosts: nodes
+  become: true
   roles:
     - agent
-    - marzban
-    - awg

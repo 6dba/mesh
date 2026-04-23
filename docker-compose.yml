@@ -12,7 +12,7 @@ services:
     environment:
       - KOSATKA_API_KEY=dev-key
       - KOSATKA_DATABASE_URL=sqlite+aiosqlite:///./data/kosatka.db
-    command: uvicorn kosatka_master.main:app --host 0.0.0.1 --port 8000 --reload
+    command: uvicorn kosatka_master.main:app --host 0.0.0.0 --port 8000 --reload
 
   agent-mock:
     image: alpine

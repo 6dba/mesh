@@ -1,4 +1,36 @@
+---
 ansible_python_interpreter: /usr/bin/python3
+
+# ─── KOSATKA control-plane ────────────────────────────────────────────────
+# Swap these two to real secrets before running against production.
 kosatka_api_key: "change-me-in-production"
-kosatka_database_url: "sqlite+aiosqlite:///./kosatka.db"
+kosatka_webhook_secret: "change-me-in-production"
+kosatka_database_url: "sqlite+aiosqlite:////app/data/kosatka.db"
 kosatka_master_domain: "master.example.com"
+kosatka_master_port: 8000
+kosatka_master_url: "http://{{ groups['master'][0] }}:{{ kosatka_master_port }}"
+
+# ─── KOSATKA agent ────────────────────────────────────────────────────────
+agent_api_key: "change-me-in-production"
+agent_port: 8001
+kosatka_agent_image: "ghcr.io/6dba/kosatka-agent:latest"
+kosatka_master_image: "ghcr.io/6dba/kosatka-master:latest"
+
+# ─── AmneziaWG defaults ───────────────────────────────────────────────────
+awg_listen_port: 51820
+awg_subnet: "10.8.0.0/24"
+awg_server_address: "10.8.0.1/24"
+awg_dns: "1.1.1.1, 1.0.0.1"
+awg_upstream_iface: "eth0"
+
+# AmneziaWG obfuscation (must match the client side). These defaults work
+# for most bypass scenarios — change only if you know what you're doing.
+awg_jc: 4
+awg_jmin: 40
+awg_jmax: 70
+awg_s1: 50
+awg_s2: 100
+awg_h1: 1
+awg_h2: 2
+awg_h3: 3
+awg_h4: 4

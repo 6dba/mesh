@@ -1,3 +1,29 @@
 ---
-- name: Setup Marzban
-  command: echo "Setting up Marzban provider"
+# Installs Marzban via the upstream installer. Marzban itself ships a
+# docker-compose stack; we just parameterise the admin credentials here.
+
+- name: Install Marzban via the upstream installer
+  ansible.builtin.shell: |
+    set -eu
+    if command -v marzban >/dev/null 2>&1; then
+      echo "marzban-already-installed"
+      exit 0
+    fi
+    curl -fsSL https://github.com/Gozargah/Marzban-scripts/raw/master/marzban.sh \
+      -o /tmp/marzban.sh
+    bash /tmp/marzban.sh install --yes
+  register: marzban_install
+  changed_when: "'marzban-already-installed' not in marzban_install.stdout"
+  environment:
+    SUDO_ASKPASS: "/bin/true"
+
+- name: Create initial Marzban admin
+  ansible.builtin.shell: |
+    set -eu
+    marzban cli admin create --sudo \
+      --username "{{ marzban_username }}" \
+      --password "{{ marzban_password }}" || true
+  when:
+    - marzban_username is defined
+    - marzban_password is defined
+  changed_when: false

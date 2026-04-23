@@ -1,0 +1,17 @@
+version: "3.9"
+
+services:
+  kosatka-agent:
+    image: {{ kosatka_agent_image | default('ghcr.io/6dba/kosatka-agent:latest') }}
+    restart: unless-stopped
+    env_file: .env
+    network_mode: host
+    # Host networking + privileged + bind-mounts are required so the agent
+    # can run `awg set` / `wg set` against the host's interface.
+    privileged: true
+    cap_add:
+      - NET_ADMIN
+    volumes:
+      - /etc/amnezia:/etc/amnezia
+      - /etc/wireguard:/etc/wireguard
+      - /opt/kosatka/agent:/opt/kosatka/agent
