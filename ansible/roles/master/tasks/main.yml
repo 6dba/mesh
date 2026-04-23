@@ -1,18 +1,42 @@
 ---
-- name: Create master directory
-  file:
+- name: Ensure master directory exists
+  ansible.builtin.file:
     path: /opt/kosatka/master
     state: directory
+    mode: "0755"
 
-- name: Copy master configuration
-  copy:
-    content: |
-      KOSATKA_API_KEY={{ kosatka_api_key }}
-      KOSATKA_DATABASE_URL={{ kosatka_database_url }}
+- name: Render master .env
+  ansible.builtin.template:
+    src: master.env.j2
     dest: /opt/kosatka/master/.env
+    mode: "0600"
+  notify: restart kosatka-master
 
-- name: Start master services
-  command: docker-compose up -d
-  args:
-    chdir: /opt/kosatka/master
-  failed_when: false
+- name: Render master docker-compose.yml
+  ansible.builtin.template:
+    src: docker-compose.yml.j2
+    dest: /opt/kosatka/master/docker-compose.yml
+    mode: "0644"
+  notify: restart kosatka-master
+
+- name: Render Caddyfile for HTTPS termination
+  ansible.builtin.template:
+    src: Caddyfile.j2
+    dest: /opt/kosatka/master/Caddyfile
+    mode: "0644"
+  notify: restart kosatka-master
+
+- name: Pull and start KOSATKA master stack
+  community.docker.docker_compose_v2:
+    project_src: /opt/kosatka/master
+    state: present
+    pull: always
+
+- name: Wait for master /health
+  ansible.builtin.uri:
+    url: "http://127.0.0.1:{{ kosatka_master_port | default(8000) }}/health"
+    status_code: 200
+  register: master_health
+  retries: 20
+  delay: 3
+  until: master_health.status == 200

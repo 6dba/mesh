@@ -1,10 +1,24 @@
+---
+# Example inventory for a single-master + two-node KOSATKA Mesh deployment.
+# Copy to `hosts.yml` and adapt for your environment.
+#
+# `kosatka_provider_type` decides which provider role runs on each node:
+#   awg | wireguard | marzban | xray
 all:
   children:
     master:
       hosts:
         master.example.com:
           ansible_user: root
+
     nodes:
       hosts:
-        node1.example.com:
+        node-awg-1.example.com:
           ansible_user: root
+          kosatka_provider_type: awg
+          awg_public_endpoint: node-awg-1.example.com
+        node-marzban-1.example.com:
+          ansible_user: root
+          kosatka_provider_type: marzban
+          marzban_username: admin
+          marzban_password: change-me-strong-password

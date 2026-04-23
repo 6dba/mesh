@@ -1,0 +1,29 @@
+version: "3.9"
+
+services:
+  master:
+    image: {{ kosatka_master_image | default('ghcr.io/6dba/kosatka-master:latest') }}
+    restart: unless-stopped
+    env_file: .env
+    ports:
+      - "127.0.0.1:{{ kosatka_master_port | default(8000) }}:8000"
+    volumes:
+      - master_data:/app/data
+
+  caddy:
+    image: caddy:2
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - master
+
+volumes:
+  master_data:
+  caddy_data:
+  caddy_config:

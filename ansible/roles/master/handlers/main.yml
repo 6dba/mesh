@@ -1,0 +1,6 @@
+---
+- name: restart kosatka-master
+  community.docker.docker_compose_v2:
+    project_src: /opt/kosatka/master
+    state: present
+    restarted: true

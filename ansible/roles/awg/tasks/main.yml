@@ -1,3 +1,109 @@
 ---
-- name: Setup AmneziaWG
-  command: echo "Setting up AmneziaWG provider"
+# Real installation of AmneziaWG + interface bootstrap on a node.
+# After this role, awg-quick@wg0 is up and the agent can add/remove peers
+# via `awg set wg0 peer ... allowed-ips ...` (no service restart required).
+
+- name: Ensure kernel headers are installed (required by amneziawg-dkms)
+  ansible.builtin.apt:
+    name: "linux-headers-{{ ansible_kernel }}"
+    state: present
+    update_cache: true
+  when: ansible_kernel is defined
+
+- name: Install software-properties-common (needed for add-apt-repository)
+  ansible.builtin.apt:
+    name: software-properties-common
+    state: present
+
+- name: Add AmneziaVPN apt repository
+  ansible.builtin.apt_repository:
+    repo: "ppa:amnezia/ppa"
+    state: present
+    update_cache: true
+
+- name: Install AmneziaWG tools and kernel module
+  ansible.builtin.apt:
+    name:
+      - amneziawg
+      - amneziawg-tools
+      - amneziawg-dkms
+    state: present
+
+- name: Ensure amneziawg config directory exists
+  ansible.builtin.file:
+    path: /etc/amnezia/amneziawg
+    state: directory
+    owner: root
+    group: root
+    mode: "0700"
+
+- name: Check whether server private key already exists
+  ansible.builtin.stat:
+    path: /etc/amnezia/amneziawg/privatekey
+  register: awg_privkey_stat
+
+- name: Generate server private key
+  ansible.builtin.shell: "awg genkey > /etc/amnezia/amneziawg/privatekey"
+  args:
+    creates: /etc/amnezia/amneziawg/privatekey
+  when: not awg_privkey_stat.stat.exists
+
+- name: Tighten permissions on server private key
+  ansible.builtin.file:
+    path: /etc/amnezia/amneziawg/privatekey
+    owner: root
+    group: root
+    mode: "0600"
+
+- name: Derive server public key
+  ansible.builtin.shell: "awg pubkey < /etc/amnezia/amneziawg/privatekey > /etc/amnezia/amneziawg/publickey"
+  args:
+    creates: /etc/amnezia/amneziawg/publickey
+
+- name: Read server private key
+  ansible.builtin.slurp:
+    src: /etc/amnezia/amneziawg/privatekey
+  register: awg_privkey_slurp
+
+- name: Read server public key
+  ansible.builtin.slurp:
+    src: /etc/amnezia/amneziawg/publickey
+  register: awg_pubkey_slurp
+
+- name: Render server wg0.conf
+  ansible.builtin.template:
+    src: wg0.conf.j2
+    dest: /etc/amnezia/amneziawg/wg0.conf
+    owner: root
+    group: root
+    mode: "0600"
+  vars:
+    awg_server_private_key: "{{ awg_privkey_slurp.content | b64decode | trim }}"
+  notify: restart awg-quick
+
+- name: Enable net.ipv4.ip_forward
+  ansible.posix.sysctl:
+    name: net.ipv4.ip_forward
+    value: "1"
+    state: present
+    reload: true
+    sysctl_set: true
+
+- name: Enable and start awg-quick@wg0
+  ansible.builtin.systemd:
+    name: "awg-quick@wg0"
+    enabled: true
+    state: started
+    daemon_reload: true
+
+- name: Publish server public key + endpoint for the agent
+  ansible.builtin.copy:
+    dest: /opt/kosatka/agent/awg_server.json
+    mode: "0640"
+    content: |
+      {
+        "public_key": "{{ awg_pubkey_slurp.content | b64decode | trim }}",
+        "endpoint": "{{ awg_public_endpoint | default(ansible_host | default(inventory_hostname)) }}:{{ awg_listen_port | default(51820) }}",
+        "subnet": "{{ awg_subnet | default('10.8.0.0/24') }}",
+        "dns": "{{ awg_dns | default('1.1.1.1, 1.0.0.1') }}"
+      }

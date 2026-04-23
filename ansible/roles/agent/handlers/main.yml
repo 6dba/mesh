@@ -1,0 +1,6 @@
+---
+- name: restart kosatka-agent
+  community.docker.docker_compose_v2:
+    project_src: /opt/kosatka/agent
+    state: present
+    restarted: true

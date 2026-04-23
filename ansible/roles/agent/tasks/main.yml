@@ -1,8 +1,71 @@
 ---
-- name: Create agent directory
-  file:
+# Deploys the KOSATKA agent as a docker-compose service on the node and
+# registers the node with the KOSATKA master via its admin API.
+
+- name: Ensure agent directory exists
+  ansible.builtin.file:
     path: /opt/kosatka/agent
     state: directory
+    owner: root
+    group: root
+    mode: "0755"
 
-- name: Setup Agent
-  command: echo "Setting up KOSATKA Agent"
+- name: Ensure provider-specific config directories are bind-mountable
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    mode: "0755"
+  loop:
+    - /etc/amnezia
+    - /etc/wireguard
+
+- name: Render agent .env
+  ansible.builtin.template:
+    src: agent.env.j2
+    dest: /opt/kosatka/agent/.env
+    owner: root
+    group: root
+    mode: "0600"
+  notify: restart kosatka-agent
+
+- name: Render agent docker-compose.yml
+  ansible.builtin.template:
+    src: docker-compose.yml.j2
+    dest: /opt/kosatka/agent/docker-compose.yml
+    owner: root
+    group: root
+    mode: "0644"
+  notify: restart kosatka-agent
+
+- name: Pull and start KOSATKA agent
+  community.docker.docker_compose_v2:
+    project_src: /opt/kosatka/agent
+    state: present
+    pull: always
+
+- name: Wait for agent /health to respond locally
+  ansible.builtin.uri:
+    url: "http://127.0.0.1:{{ agent_port | default(8001) }}/health"
+    return_content: true
+    status_code: 200
+  register: agent_health
+  retries: 20
+  delay: 3
+  until: agent_health.status == 200
+
+- name: Register node with KOSATKA master
+  ansible.builtin.uri:
+    url: "{{ kosatka_master_url }}/api/v1/nodes/"
+    method: POST
+    headers:
+      X-Kosatka-Key: "{{ kosatka_api_key }}"
+      Content-Type: "application/json"
+    body_format: json
+    body:
+      name: "{{ inventory_hostname }}"
+      address: "http://{{ ansible_host | default(inventory_hostname) }}:{{ agent_port | default(8001) }}"
+      provider_type: "{{ kosatka_provider_type | default('awg') }}"
+    status_code: [200, 201, 409]
+  delegate_to: localhost
+  become: false
+  when: kosatka_master_url is defined
