@@ -57,11 +57,14 @@ class AmneziaWGProvider(BaseAgentProvider):
     async def create_client(self, client_data: Dict[str, Any]) -> Dict[str, Any]:
         async with self.lock:
             state = wg.load_state(self.state_path)
-            client_id = str(
+            # `str(None)` evaluates to "None" (truthy), which would silently
+            # allocate a peer with id "None" — validate before casting.
+            raw_id = (
                 client_data.get("external_id") or client_data.get("id") or client_data.get("name")
             )
-            if not client_id:
+            if not raw_id:
                 raise ValueError("create_client: missing external_id/id/name")
+            client_id = str(raw_id)
 
             if client_id in state.peers:
                 # Idempotent: return existing peer as-is.

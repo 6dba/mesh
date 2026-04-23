@@ -4,7 +4,7 @@ from fastapi import FastAPI
 
 from .api.v1.router import api_router
 from .database import Base, engine
-from .scheduler import scheduler
+from .scheduler import scheduler, setup_scheduler
 
 
 @asynccontextmanager
@@ -14,7 +14,10 @@ async def lifespan(app: FastAPI):
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
 
-    scheduler.start()
+    # setup_scheduler() registers sync_nodes_job + check_expirations_job
+    # and calls scheduler.start() internally. Calling scheduler.start() here
+    # directly would leave the scheduler jobless.
+    setup_scheduler()
     try:
         yield
     finally:
