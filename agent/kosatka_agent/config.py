@@ -18,6 +18,9 @@ class Settings(BaseSettings):
     wg_config_path: str = "/etc/wireguard/wg0.conf"
     wg_interface: str = "wg0"
     wg_state_path: str = "/opt/kosatka/agent/wg_peers.json"
+    # Written by ansible/roles/wireguard. Separate file so a node can host
+    # AWG and vanilla WG side-by-side in the future without key collisions.
+    wg_server_info_path: str = "/opt/kosatka/agent/wg_server.json"
 
     # Pydantic-settings reads AGENT_*-prefixed env vars so agent.env can cleanly
     # coexist with other services on the same host.

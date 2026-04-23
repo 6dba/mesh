@@ -21,9 +21,10 @@ class WireGuardProvider(BaseAgentProvider):
         self.config_path = config_path or settings.wg_config_path
         self.interface = settings.wg_interface
         self.state_path = settings.wg_state_path
-        # WireGuard does not ship a server_info file; fall back to the AWG
-        # one which Ansible writes in either case.
-        self.server_info_path = settings.awg_server_info_path
+        # Written by roles/wireguard (NOT roles/awg). Vanilla-WG nodes never
+        # run the awg role so falling back to awg_server_info_path would
+        # produce a permanent RuntimeError.
+        self.server_info_path = settings.wg_server_info_path
         self.lock = asyncio.Lock()
 
     def _server(self) -> wg.ServerInfo:

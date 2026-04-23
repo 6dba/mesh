@@ -1,0 +1,91 @@
+---
+# Vanilla WireGuard install for nodes that declare kosatka_provider_type=wireguard.
+# Parallel to roles/awg but against the upstream wireguard-tools package +
+# wg-quick@wg0 unit (no AmneziaWG obfuscation).
+
+- name: Install wireguard-tools
+  ansible.builtin.apt:
+    name:
+      - wireguard
+      - wireguard-tools
+    state: present
+    update_cache: true
+
+- name: Ensure wireguard config directory exists
+  ansible.builtin.file:
+    path: /etc/wireguard
+    state: directory
+    owner: root
+    group: root
+    mode: "0700"
+
+- name: Check whether server private key already exists
+  ansible.builtin.stat:
+    path: /etc/wireguard/privatekey
+  register: wg_privkey_stat
+
+- name: Generate server private key
+  ansible.builtin.shell: "wg genkey > /etc/wireguard/privatekey"
+  args:
+    creates: /etc/wireguard/privatekey
+  when: not wg_privkey_stat.stat.exists
+
+- name: Tighten permissions on server private key
+  ansible.builtin.file:
+    path: /etc/wireguard/privatekey
+    owner: root
+    group: root
+    mode: "0600"
+
+- name: Derive server public key
+  ansible.builtin.shell: "wg pubkey < /etc/wireguard/privatekey > /etc/wireguard/publickey"
+  args:
+    creates: /etc/wireguard/publickey
+
+- name: Read server private key
+  ansible.builtin.slurp:
+    src: /etc/wireguard/privatekey
+  register: wg_privkey_slurp
+
+- name: Read server public key
+  ansible.builtin.slurp:
+    src: /etc/wireguard/publickey
+  register: wg_pubkey_slurp
+
+- name: Render server wg0.conf
+  ansible.builtin.template:
+    src: wg0.conf.j2
+    dest: /etc/wireguard/wg0.conf
+    owner: root
+    group: root
+    mode: "0600"
+  vars:
+    wg_server_private_key: "{{ wg_privkey_slurp.content | b64decode | trim }}"
+  notify: restart wg-quick
+
+- name: Enable net.ipv4.ip_forward
+  ansible.posix.sysctl:
+    name: net.ipv4.ip_forward
+    value: "1"
+    state: present
+    reload: true
+    sysctl_set: true
+
+- name: Enable and start wg-quick@wg0
+  ansible.builtin.systemd:
+    name: "wg-quick@wg0"
+    enabled: true
+    state: started
+    daemon_reload: true
+
+- name: Publish server public key + endpoint for the agent
+  ansible.builtin.copy:
+    dest: /opt/kosatka/agent/wg_server.json
+    mode: "0640"
+    content: |
+      {
+        "public_key": "{{ wg_pubkey_slurp.content | b64decode | trim }}",
+        "endpoint": "{{ wg_public_endpoint | default(ansible_host | default(inventory_hostname)) }}:{{ wg_listen_port | default(51820) }}",
+        "subnet": "{{ wg_subnet | default('10.8.0.0/24') }}",
+        "dns": "{{ wg_dns | default('1.1.1.1, 1.0.0.1') }}"
+      }

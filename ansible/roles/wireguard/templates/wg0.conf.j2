@@ -1,0 +1,10 @@
+[Interface]
+PrivateKey = {{ wg_server_private_key }}
+Address = {{ wg_server_address | default('10.8.0.1/24') }}
+ListenPort = {{ wg_listen_port | default(51820) }}
+
+PostUp   = iptables -A FORWARD -i %i -j ACCEPT; iptables -t nat -A POSTROUTING -o {{ wg_upstream_iface | default('eth0') }} -j MASQUERADE
+PostDown = iptables -D FORWARD -i %i -j ACCEPT; iptables -t nat -D POSTROUTING -o {{ wg_upstream_iface | default('eth0') }} -j MASQUERADE
+
+# Peers are added/removed at runtime by the agent via `wg set wg0 peer ...`.
+# Do not add static peers here unless you manage them out-of-band.

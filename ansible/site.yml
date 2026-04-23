@@ -27,6 +27,13 @@
     - role: awg
       when: (kosatka_provider_type | default('awg')) in ['awg', 'amneziawg']
 
+- name: Install vanilla WireGuard on nodes that declare it
+  hosts: nodes
+  become: true
+  roles:
+    - role: wireguard
+      when: (kosatka_provider_type | default('')) == 'wireguard'
+
 - name: Install Marzban on nodes that declare it
   hosts: nodes
   become: true

@@ -170,6 +170,13 @@ async def provision_client(
     agent_payload = {"external_id": req.external_id, "email": req.email}
     agent_result = await _call_agent(node, "POST", "/clients", json=agent_payload)
 
+    # Remember which node materialised the peer so future config/revoke
+    # calls can find it without the caller passing node_id.
+    if client.node_id != node.id:
+        client.node_id = node.id
+        await db.commit()
+        await db.refresh(client)
+
     config_text = agent_result.get("config_text") or ""
     if not config_text:
         # Fall back to a dedicated config fetch if the agent returned a bare result.
@@ -194,14 +201,43 @@ async def provision_client(
 async def get_client_config_by_external(
     external_id: str, node_id: Optional[int] = None, db: AsyncSession = Depends(get_db)
 ) -> Dict[str, Any]:
-    """Proxy to the agent's `/clients/{external_id}/config`."""
-    # Mirror the is_active guard from _pick_node so pinning a stale node_id
-    # gives a clear 404 instead of a downstream 502 "Agent unreachable".
+    """Proxy to the agent's `/clients/{external_id}/config`.
+
+    Resolution order:
+      1. Explicit node_id from the caller (must be active).
+      2. node_id persisted on the Client row (set at provision time).
+      3. Only-active-node fallback (single-node deployments / legacy rows).
+    """
+    # 1. Explicit pin
     if node_id is not None:
         q = await db.execute(select(Node).where(Node.id == node_id, Node.is_active.is_(True)))
-    else:
-        q = await db.execute(select(Node).where(Node.is_active.is_(True)).limit(1))
-    node = q.scalar_one_or_none()
-    if node is None:
-        raise HTTPException(status_code=404, detail="No node available")
-    return await _call_agent(node, "GET", f"/clients/{external_id}/config")
+        node = q.scalar_one_or_none()
+        if node is None:
+            raise HTTPException(status_code=404, detail=f"Node {node_id} not found or inactive")
+        return await _call_agent(node, "GET", f"/clients/{external_id}/config")
+
+    # 2. Mapping persisted at provision time
+    client_res = await db.execute(select(Client).where(Client.external_id == external_id))
+    client = client_res.scalar_one_or_none()
+    if client is not None and client.node_id is not None:
+        node_res = await db.execute(
+            select(Node).where(Node.id == client.node_id, Node.is_active.is_(True))
+        )
+        node = node_res.scalar_one_or_none()
+        if node is not None:
+            return await _call_agent(node, "GET", f"/clients/{external_id}/config")
+        # else: the originating node is gone/disabled — fall through to
+        # best-effort scan rather than 404, the peer might have been
+        # migrated or the DB is out-of-sync.
+
+    # 3. Last-resort scan across active nodes. The agent returns an empty
+    # config string for unknown peers, so we keep going until one answers.
+    active = await db.execute(select(Node).where(Node.is_active.is_(True)))
+    for node in active.scalars().all():
+        try:
+            result = await _call_agent(node, "GET", f"/clients/{external_id}/config")
+        except HTTPException:
+            continue
+        if result.get("config"):
+            return result
+    raise HTTPException(status_code=404, detail="No node has this client's config")
