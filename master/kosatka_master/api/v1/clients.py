@@ -195,8 +195,10 @@ async def get_client_config_by_external(
     external_id: str, node_id: Optional[int] = None, db: AsyncSession = Depends(get_db)
 ) -> Dict[str, Any]:
     """Proxy to the agent's `/clients/{external_id}/config`."""
+    # Mirror the is_active guard from _pick_node so pinning a stale node_id
+    # gives a clear 404 instead of a downstream 502 "Agent unreachable".
     if node_id is not None:
-        q = await db.execute(select(Node).where(Node.id == node_id))
+        q = await db.execute(select(Node).where(Node.id == node_id, Node.is_active.is_(True)))
     else:
         q = await db.execute(select(Node).where(Node.is_active.is_(True)).limit(1))
     node = q.scalar_one_or_none()

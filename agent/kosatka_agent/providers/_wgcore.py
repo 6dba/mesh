@@ -107,10 +107,18 @@ def load_state(path: str) -> PeerState:
 
 
 def save_state(path: str, state: PeerState) -> None:
+    # The state file contains every peer's private_key + preshared_key, so we
+    # open the temp file with an explicit 0o600 mode (umask-independent) before
+    # the atomic rename. Without this, default umask would leave it world-
+    # readable — a serious issue since the file is bind-mounted to the host.
     Path(path).parent.mkdir(parents=True, exist_ok=True)
     payload = {"peers": {k: asdict(v) for k, v in state.peers.items()}}
     tmp = Path(path).with_suffix(".tmp")
-    tmp.write_text(json.dumps(payload, indent=2))
+    fd = os.open(str(tmp), os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+    try:
+        os.write(fd, json.dumps(payload, indent=2).encode())
+    finally:
+        os.close(fd)
     os.replace(tmp, path)
 
 
