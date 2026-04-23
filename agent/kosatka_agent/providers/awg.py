@@ -86,7 +86,8 @@ class AmneziaWGProvider(BaseAgentProvider):
                 await wg.save_running_config(CMD, self.interface)
                 wg.save_state(self.state_path, state)
 
-            config_text = wg.render_client_config(peer, self._server())
+            server = self._server()
+            config_text = wg.render_client_config(peer, server, awg_params=server.awg_params)
             return {
                 "id": peer.client_id,
                 "client_id": peer.client_id,
@@ -116,7 +117,8 @@ class AmneziaWGProvider(BaseAgentProvider):
         peer = state.peers.get(str(client_id))
         if peer is None:
             return ""
-        return wg.render_client_config(peer, self._server())
+        server = self._server()
+        return wg.render_client_config(peer, server, awg_params=server.awg_params)
 
     async def get_client_stats(self, client_id: str) -> Dict[str, Any]:
         state = wg.load_state(self.state_path)

@@ -25,12 +25,20 @@ from typing import Any, Dict, List
 logger = logging.getLogger(__name__)
 
 
+# Keys of AmneziaWG obfuscation parameters we forward to clients. These must
+# match the values set in the server's wg0.conf [Interface] block or the
+# handshake will silently fail.
+AWG_PARAM_KEYS = ("Jc", "Jmin", "Jmax", "S1", "S2", "H1", "H2", "H3", "H4")
+
+
 @dataclass
 class ServerInfo:
     public_key: str
     endpoint: str
     subnet: str = "10.8.0.0/24"
     dns: str = "1.1.1.1, 1.0.0.1"
+    # AmneziaWG obfuscation params; empty for vanilla WireGuard.
+    awg_params: Dict[str, Any] = field(default_factory=dict)
 
 
 @dataclass
@@ -66,12 +74,24 @@ async def run(cmd: List[str], stdin_text: str | None = None) -> str:
 def load_server_info(path: str) -> ServerInfo | None:
     try:
         data = json.loads(Path(path).read_text())
-        return ServerInfo(**data)
     except FileNotFoundError:
         logger.warning("Server info file %s not found; provider is not yet bootstrapped", path)
         return None
-    except (json.JSONDecodeError, TypeError) as exc:
+    except json.JSONDecodeError as exc:
         logger.error("Malformed server info file %s: %s", path, exc)
+        return None
+    # Peel off the AmneziaWG obfuscation params from the top-level JSON object
+    # (ansible's awg role writes them flat alongside public_key/endpoint/...).
+    awg_params: Dict[str, Any] = {}
+    for key in AWG_PARAM_KEYS:
+        if key in data:
+            awg_params[key] = data.pop(key)
+    # Allow either flat keys or an explicit `awg_params` object.
+    awg_params.update(data.pop("awg_params", {}) or {})
+    try:
+        return ServerInfo(awg_params=awg_params, **data)
+    except TypeError as exc:
+        logger.error("Server info %s has unexpected fields: %s", path, exc)
         return None
 
 

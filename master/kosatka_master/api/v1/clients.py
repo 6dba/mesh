@@ -91,10 +91,24 @@ async def delete_client(client_id: int, db: AsyncSession = Depends(get_db)):
 
 async def _pick_node(db: AsyncSession, protocol: str, node_id: Optional[int]) -> Node:
     if node_id is not None:
-        q = await db.execute(select(Node).where(Node.id == node_id))
+        # Pinned node_id still has to be active + speaking the right provider;
+        # otherwise the agent call later would either time out (inactive) or
+        # return a confusing error (sending an AWG payload to a Marzban agent).
+        q = await db.execute(select(Node).where(Node.id == node_id, Node.is_active.is_(True)))
         node = q.scalar_one_or_none()
         if node is None:
-            raise HTTPException(status_code=404, detail=f"Node {node_id} not found")
+            raise HTTPException(
+                status_code=404,
+                detail=f"Node {node_id} not found or inactive",
+            )
+        if node.provider_type != protocol:
+            raise HTTPException(
+                status_code=409,
+                detail=(
+                    f"Node {node_id} has provider_type={node.provider_type!r}, "
+                    f"cannot serve protocol={protocol!r}"
+                ),
+            )
         return node
 
     q = await db.execute(
