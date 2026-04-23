@@ -10,6 +10,7 @@ from kosatka_master.models.node import Node
 from kosatka_master.security import get_api_key
 from pydantic import BaseModel
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 router = APIRouter(prefix="/clients", tags=["clients"], dependencies=[Depends(get_api_key)])
@@ -158,8 +159,17 @@ async def provision_client(
     if client is None:
         client = Client(external_id=req.external_id, email=req.email)
         db.add(client)
-        await db.commit()
-        await db.refresh(client)
+        try:
+            await db.commit()
+        except IntegrityError:
+            # Two concurrent provisions raced on the same external_id; the
+            # unique constraint catches the loser. Roll back and pick up the
+            # winning row instead of 500-ing.
+            await db.rollback()
+            race = await db.execute(select(Client).where(Client.external_id == req.external_id))
+            client = race.scalar_one()
+        else:
+            await db.refresh(client)
     elif req.email and client.email != req.email:
         client.email = req.email
         await db.commit()
