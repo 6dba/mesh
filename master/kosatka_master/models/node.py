@@ -16,6 +16,7 @@ class Node(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     name: Mapped[str] = mapped_column(String(255), unique=True)
     address: Mapped[str] = mapped_column(String(255))
+    api_key: Mapped[str | None] = mapped_column(String(255), nullable=True)
     provider_type: Mapped[str] = mapped_column(String(50))  # e.g., 'agent'
     status: Mapped[str] = mapped_column(String(50), default="offline")
     last_seen: Mapped[datetime] = mapped_column(DateTime, default=_utcnow)

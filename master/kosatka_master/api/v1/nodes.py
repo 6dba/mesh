@@ -1,4 +1,4 @@
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException
 from kosatka_master.config import settings
@@ -30,6 +30,7 @@ class NodeCreate(BaseModel):
     name: str
     address: str
     provider_type: str = "agent"
+    api_key: Optional[str] = None
 
 
 @router.get("/", response_model=List[NodeSchema])
@@ -51,6 +52,8 @@ async def create_node(node_data: NodeCreate, db: AsyncSession = Depends(get_db))
         # new IP or reprovisioned as a different protocol.
         existing.address = node_data.address
         existing.provider_type = node_data.provider_type
+        if node_data.api_key:
+            existing.api_key = node_data.api_key
         existing.is_active = True
         await db.commit()
         await db.refresh(existing)
@@ -92,7 +95,8 @@ async def get_node_health(node_id: int, db: AsyncSession = Depends(get_db)) -> D
     if not node:
         raise HTTPException(status_code=404, detail="Node not found")
 
-    provider = AgentNodeProvider(settings.effective_agent_api_key())
+    key = node.api_key or settings.effective_agent_api_key()
+    provider = AgentNodeProvider(key)
     is_up = await provider.sync_node(node.address)
     return {
         "id": node.id,

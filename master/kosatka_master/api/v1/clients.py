@@ -126,9 +126,10 @@ async def _pick_node(db: AsyncSession, protocol: str, node_id: Optional[int]) ->
 
 async def _call_agent(node: Node, method: str, path: str, **kwargs: Any) -> Dict[str, Any]:
     url = f"{node.address.rstrip('/')}{path}"
-    # Use the dedicated agent key so clients talking to master and master
-    # talking to agent can rotate independently.
-    headers = {"X-Kosatka-Key": settings.effective_agent_api_key()}
+    # Use the node's specific key if set; fall back to the global key.
+    # This allows per-node rotation.
+    key = node.api_key or settings.effective_agent_api_key()
+    headers = {"X-Kosatka-Key": key}
     try:
         async with httpx.AsyncClient(timeout=10.0) as client:
             resp = await client.request(method, url, headers=headers, **kwargs)

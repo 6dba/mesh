@@ -11,7 +11,7 @@ class NodeBase(BaseModel):
 
 
 class NodeCreate(NodeBase):
-    pass
+    api_key: Optional[str] = None
 
 
 class Node(NodeBase):

@@ -27,14 +27,19 @@ class APIClient:
         return await self.request("GET", "/nodes")
 
     async def register_node(
-        self, name: str, address: str, provider_type: str = "agent"
+        self, name: str, address: str, provider_type: str = "agent", api_key: str | None = None
     ) -> Dict[str, Any]:
-        data = {"name": name, "address": address, "provider_type": provider_type}
+        data = {
+            "name": name,
+            "address": address,
+            "provider_type": provider_type,
+            "api_key": api_key,
+        }
         return await self.request("POST", "/nodes", json=data)
 
-    async def provision_client(self, name: str, protocol: str) -> Dict[str, Any]:
-        data = {"name": name, "protocol": protocol}
-        return await self.request("POST", "/clients", json=data)
+    async def provision_client(self, external_id: str, protocol: str) -> Dict[str, Any]:
+        data = {"external_id": external_id, "protocol": protocol}
+        return await self.request("POST", "/clients/provision", json=data)
 
     async def get_node_health(self, node_id: int) -> Dict[str, Any]:
         return await self.request("GET", f"/nodes/{node_id}/health")

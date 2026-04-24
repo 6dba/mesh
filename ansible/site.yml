@@ -21,28 +21,28 @@
     - master
 
 - name: Install AmneziaWG on nodes that declare it
-  hosts: nodes
+  hosts: nodes:all
   become: true
   roles:
     - role: awg
       when: (kosatka_provider_type | default('awg')) in ['awg', 'amneziawg']
 
 - name: Install vanilla WireGuard on nodes that declare it
-  hosts: nodes
+  hosts: nodes:all
   become: true
   roles:
     - role: wireguard
       when: (kosatka_provider_type | default('')) == 'wireguard'
 
 - name: Install Marzban on nodes that declare it
-  hosts: nodes
+  hosts: nodes:all
   become: true
   roles:
     - role: marzban
       when: (kosatka_provider_type | default('')) == 'marzban'
 
 - name: Deploy the KOSATKA agent on every node and register it
-  hosts: nodes
+  hosts: nodes:all
   become: true
   roles:
     - agent

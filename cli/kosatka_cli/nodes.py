@@ -41,23 +41,25 @@ def list_nodes():
     asyncio.run(_list())
 
 
-async def _register(name: str, address: str, provider: str):
+async def _register(name: str, address: str, provider: str, api_key: str | None = None):
     client = APIClient()
     try:
-        node = await client.register_node(name, address, provider)
+        node = await client.register_node(name, address, provider, api_key)
         console.print(f"[green]Successfully registered node '{name}' with ID {node['id']}[/green]")
     except Exception as e:
         console.print(f"[red]Error registering node: {e}[/red]")
 
 
-@app.command("register-node")
+@app.command("register")
+@app.command("add")
 def register_node(
     name: str = typer.Argument(..., help="Name of the node"),
     address: str = typer.Argument(..., help="IP or hostname of the node"),
     provider: str = typer.Option("agent", help="Provider type (agent, wireguard, etc.)"),
+    api_key: str = typer.Option(None, "--api-key", "-k", help="API key for the agent"),
 ):
     """Register a new node"""
-    asyncio.run(_register(name, address, provider))
+    asyncio.run(_register(name, address, provider, api_key))
 
 
 async def _health(node_id: int):
