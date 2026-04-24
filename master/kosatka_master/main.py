@@ -7,10 +7,34 @@ from pathlib import Path
 from fastapi import BackgroundTasks, FastAPI
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
+from sqlalchemy import text
 
 from .api.v1.router import api_router
 from .database import Base, engine
 from .scheduler import scheduler, setup_scheduler
+
+# Columns added to existing tables by recent feature work. `create_all`
+# only creates missing tables — it cannot `ALTER TABLE … ADD COLUMN` on
+# tables that already exist, so deployments that predate these columns
+# would otherwise hit "no such column: nodes.api_key" on every SELECT.
+# Until Alembic is in place, run an idempotent ADD COLUMN on startup.
+_LIGHTWEIGHT_MIGRATIONS: list[tuple[str, str, str]] = [
+    ("nodes", "api_key", "VARCHAR(255)"),
+]
+
+
+async def _apply_lightweight_migrations() -> None:
+    """Add columns that were introduced after the first deployment."""
+    async with engine.begin() as conn:
+        for table, column, sql_type in _LIGHTWEIGHT_MIGRATIONS:
+            # SQLite's `PRAGMA table_info` is the portable-enough way to
+            # detect an existing column for an MVP; every other backend
+            # we might swap in (Postgres) supports it via
+            # information_schema, but we only deploy on SQLite today.
+            result = await conn.exec_driver_sql(f"PRAGMA table_info({table})")
+            existing_columns = {row[1] for row in result.fetchall()}
+            if column not in existing_columns:
+                await conn.execute(text(f"ALTER TABLE {table} ADD COLUMN {column} {sql_type}"))
 
 
 @asynccontextmanager
@@ -19,6 +43,8 @@ async def lifespan(app: FastAPI):
     # production, prefer Alembic migrations (not yet set up in this repo).
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
+
+    await _apply_lightweight_migrations()
 
     # setup_scheduler() registers sync_nodes_job + check_expirations_job
     # and calls scheduler.start() internally. Calling scheduler.start() here

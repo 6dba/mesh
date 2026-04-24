@@ -66,6 +66,16 @@ python3 -m venv venv
 ./venv/bin/pip install --upgrade pip
 ./venv/bin/pip install ansible-core
 
+# ansible-core only ships ansible.builtin modules. The mesh playbooks
+# reach into community.general (ufw), community.docker (compose_v2) and
+# ansible.posix (sysctl for WireGuard/AmneziaWG), so pull those Galaxy
+# collections before running site.yml or the firewall/agent tasks fail
+# on "no module named community.general.ufw" etc.
+./venv/bin/ansible-galaxy collection install \
+    community.general \
+    community.docker \
+    ansible.posix
+
 # Download Playbooks
 if [ -z "$MASTER_URL" ]; then
     # SSH_CONNECTION is populated only when bash was launched inside an
