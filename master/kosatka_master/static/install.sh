@@ -68,10 +68,20 @@ python3 -m venv venv
 
 # Download Playbooks
 if [ -z "$MASTER_URL" ]; then
-    # Attempt to infer Master URL if not provided (assuming script is served from it)
-    # This is a bit hacky but works for curl | bash
-    MASTER_URL="http://${SSH_CONNECTION%% *}:8000"
-    echo "--- Inferred Master URL: $MASTER_URL (verify if deployment fails) ---"
+    # SSH_CONNECTION is populated only when bash was launched inside an
+    # SSH session, which is what `kosatka deploy node` uses. If the
+    # operator runs the documented `curl … | bash` flow directly on the
+    # host, SSH_CONNECTION is empty and the inferred URL becomes
+    # `http://:8000`, which silently breaks the tarball download below.
+    # Require an explicit --master-url in that case.
+    if [ -n "$SSH_CONNECTION" ]; then
+        MASTER_URL="http://${SSH_CONNECTION%% *}:8000"
+        echo "--- Inferred Master URL: $MASTER_URL (verify if deployment fails) ---"
+    else
+        echo "Error: --master-url is required when not running over SSH."
+        show_help
+        exit 1
+    fi
 fi
 
 echo "--- Downloading Playbooks from $MASTER_URL ---"

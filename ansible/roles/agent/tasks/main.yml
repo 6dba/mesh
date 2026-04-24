@@ -62,7 +62,13 @@
 
 - name: Set advertised address fact
   ansible.builtin.set_fact:
-    advertised_address: "{{ public_ip.content if (public_ip.content is defined) else (ansible_host | default(inventory_hostname)) }}"
+    # ifconfig.me returns the IP with a trailing newline; without `| trim`
+    # it ends up inside the node name (`node-1-2-3-4\n`) and the master
+    # URL (`http://1.2.3.4\n:8001`), which breaks registration and every
+    # subsequent master→agent HTTP call. `| trim` also keeps the branch
+    # that pulls from `ansible_host` / `inventory_hostname` harmless —
+    # those are already clean strings.
+    advertised_address: "{{ ((public_ip.content | default('')) | trim) or (ansible_host | default(inventory_hostname)) }}"
 
 - name: Register node with KOSATKA master
   ansible.builtin.uri:
