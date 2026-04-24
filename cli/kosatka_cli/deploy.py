@@ -1,4 +1,5 @@
 import os
+import shlex
 import subprocess
 
 import typer
@@ -29,11 +30,19 @@ def deploy_node(
         )
         raise typer.Exit(1)
 
-    # Construct the remote command
-    # We pass the token and protocol to the install script
+    # Construct the remote command. Every value that ends up on the
+    # remote shell is routed through shlex.quote so API keys or protocol
+    # flags containing `$`, `;`, backticks, spaces, etc. are treated as
+    # literal arguments to `bash -s` rather than executed by the remote
+    # shell. The master URL sits both in `curl -sL <url>/…` and as the
+    # `--master-url` argument, so it gets quoted in both positions.
+    quoted_master_url = shlex.quote(master_url)
+    quoted_token = shlex.quote(token)
+    quoted_protocol = shlex.quote(protocol)
     remote_cmd = (
-        f"curl -sL {master_url}/static/install.sh | "
-        f"bash -s -- --token {token} --protocol {protocol} --master-url {master_url}"
+        f"curl -sL {quoted_master_url}/static/install.sh | "
+        f"bash -s -- --token {quoted_token} --protocol {quoted_protocol} "
+        f"--master-url {quoted_master_url}"
     )
 
     ssh_cmd = ["ssh", host, remote_cmd]
