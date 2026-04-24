@@ -98,10 +98,17 @@ echo "--- Downloading Playbooks from $MASTER_URL ---"
 curl -sL "${MASTER_URL}/api/v1/static/ansible.tar.gz" -o ansible.tar.gz
 tar -xzf ansible.tar.gz
 
-# Run Ansible
+# Run Ansible.
+# agent_api_key is ALSO set to $TOKEN so the agent deploys with the same
+# shared secret the master uses to authenticate against it
+# (group_vars/all.yml otherwise leaves it at the default placeholder
+# "change-me-in-production", which causes every master→agent call to
+# return 403 while /health still responds 200 — nodes look "online" but
+# provisioning silently fails).
 echo "--- Running Deployment ---"
 ./venv/bin/ansible-playbook -i localhost, -c local site.yml \
     -e "kosatka_api_key=$TOKEN" \
+    -e "agent_api_key=$TOKEN" \
     -e "kosatka_provider_type=$PROTOCOL" \
     -e "kosatka_master_url=$MASTER_URL"
 
