@@ -13,12 +13,15 @@ def test_register_node_success():
 
         result = runner.invoke(
             app,
-            ["nodes", "register-node", "MyNode", "1.2.3.4", "--provider", "wireguard"],
+            ["nodes", "register", "MyNode", "1.2.3.4", "--provider", "wireguard"],
         )
 
         assert result.exit_code == 0
         assert "Successfully registered node 'MyNode' with ID 123" in result.stdout
-        mock_client.register_node.assert_called_once_with("MyNode", "1.2.3.4", "wireguard")
+        # register_node now accepts an optional api_key (defaults to None)
+        # so the agent's inbound API token can be registered at the same
+        # time as the node row.
+        mock_client.register_node.assert_called_once_with("MyNode", "1.2.3.4", "wireguard", None)
 
 
 def test_register_node_failure():
@@ -26,7 +29,7 @@ def test_register_node_failure():
         mock_client = mock_client_cls.return_value
         mock_client.register_node = AsyncMock(side_effect=Exception("API Error"))
 
-        result = runner.invoke(app, ["nodes", "register-node", "MyNode", "1.2.3.4"])
+        result = runner.invoke(app, ["nodes", "register", "MyNode", "1.2.3.4"])
 
         assert result.exit_code == 0
         assert "Error registering node: API Error" in result.stdout
