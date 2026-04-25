@@ -1,33 +1,88 @@
 ---
 # Real installation of AmneziaWG + interface bootstrap on a node.
-# After this role, awg-quick@wg0 is up and the agent can add/remove peers
-# via `awg set wg0 peer ... allowed-ips ...` (no service restart required).
+# Supports Debian/Ubuntu and RHEL/CentOS families with a fallback to userspace Go implementation.
 
-- name: Ensure kernel headers are installed (required by amneziawg-dkms)
-  ansible.builtin.apt:
-    name: "linux-headers-{{ ansible_kernel }}"
-    state: present
-    update_cache: true
-  when: ansible_kernel is defined
-
-- name: Install software-properties-common (needed for add-apt-repository)
-  ansible.builtin.apt:
-    name: software-properties-common
-    state: present
-
-- name: Add AmneziaVPN apt repository
-  ansible.builtin.apt_repository:
-    repo: "ppa:amnezia/ppa"
-    state: present
-    update_cache: true
-
-- name: Install AmneziaWG tools and kernel module
-  ansible.builtin.apt:
+- name: Install Common Dependencies
+  ansible.builtin.package:
     name:
-      - amneziawg
-      - amneziawg-tools
-      - amneziawg-dkms
+      - curl
+      - wget
+      - tar
+      - gzip
     state: present
+
+- name: Setup AmneziaWG (Kernel Module)
+  block:
+    - name: Ubuntu / Debian specific setup
+      when: ansible_os_family == "Debian"
+      block:
+        - name: Ensure kernel headers are installed
+          ansible.builtin.apt:
+            name: "linux-headers-{{ ansible_kernel }}"
+            state: present
+            update_cache: true
+          when: ansible_kernel is defined
+
+        - name: Install software-properties-common
+          ansible.builtin.apt:
+            name: software-properties-common
+            state: present
+
+        - name: Add AmneziaVPN apt repository (Ubuntu)
+          ansible.builtin.apt_repository:
+            repo: "ppa:amnezia/ppa"
+            state: present
+            update_cache: true
+          when: ansible_distribution == "Ubuntu"
+
+        - name: Install AmneziaWG tools and kernel module
+          ansible.builtin.apt:
+            name:
+              - amneziawg
+              - amneziawg-tools
+              - amneziawg-dkms
+            state: present
+
+    - name: RHEL / CentOS specific setup
+      when: ansible_os_family == "RedHat"
+      block:
+        - name: Install EPEL release
+          ansible.builtin.yum:
+            name: epel-release
+            state: present
+
+        - name: Install kernel headers
+          ansible.builtin.yum:
+            name: "kernel-headers"
+            state: present
+
+        - name: Install AmneziaWG via Copr / pre-built RPMs (Placeholder for RHEL)
+          # Amnezia provides source builds, so for RHEL we might default to Go
+          ansible.builtin.fail:
+            msg: "Native DKMS for RHEL is not natively packaged yet. Failing over to amneziawg-go."
+
+  rescue:
+    - name: Fallback to Userspace Implementation (amneziawg-go)
+      ansible.builtin.debug:
+        msg: "Kernel module installation failed or unsupported. Falling back to amneziawg-go (Userspace)."
+
+    - name: Download amneziawg-go binary
+      ansible.builtin.get_url:
+        url: "https://github.com/amnezia-vpn/amneziawg-go/releases/latest/download/amneziawg-go_linux_amd64"
+        dest: /usr/bin/amneziawg-go
+        mode: '0755'
+
+    - name: Download amneziawg-tools (awg, awg-quick)
+      ansible.builtin.get_url:
+        url: "https://github.com/amnezia-vpn/amneziawg-tools/releases/latest/download/awg_linux_amd64"
+        dest: /usr/bin/awg
+        mode: '0755'
+
+    - name: Download awg-quick script
+      ansible.builtin.get_url:
+        url: "https://raw.githubusercontent.com/amnezia-vpn/amneziawg-tools/master/src/wg-quick/linux.bash"
+        dest: /usr/bin/awg-quick
+        mode: '0755'
 
 - name: Ensure amneziawg config directory exists
   ansible.builtin.file:
@@ -97,9 +152,6 @@
     daemon_reload: true
 
 - name: Publish server public key + endpoint + AWG obfuscation params for the agent
-  # The obfuscation params below must match the values rendered into the
-  # server's wg0.conf (see wg0.conf.j2). The agent copies them verbatim into
-  # each client's [Interface] block; if they don't match, handshakes fail.
   ansible.builtin.copy:
     dest: /opt/kosatka/agent/awg_server.json
     mode: "0640"

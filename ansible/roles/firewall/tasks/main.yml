@@ -15,13 +15,21 @@
     - "443"
   when: "'master' in group_names"
 
+# Node-scoped rules gate on `'master' not in group_names` rather than
+# `'nodes' in group_names`. install.sh runs ansible with
+# `-i localhost, -c local`, so localhost is in `all` but not in any
+# named group; gating on `'nodes' in group_names` used to skip the
+# port-open rules while still letting the `deny incoming` default
+# policy below take effect, and the resulting box silently blocked
+# every incoming packet for AWG and the agent.
+
 - name: Allow AmneziaWG/WireGuard UDP port on nodes that use it
   community.general.ufw:
     rule: allow
     port: "{{ awg_listen_port | default(51820) }}"
     proto: udp
   when:
-    - "'nodes' in group_names"
+    - "'master' not in group_names"
     - (kosatka_provider_type | default('awg')) in ['awg', 'amneziawg', 'wireguard']
 
 - name: Allow agent port on nodes
@@ -29,7 +37,7 @@
     rule: allow
     port: "{{ agent_port | default(8001) }}"
     proto: tcp
-  when: "'nodes' in group_names"
+  when: "'master' not in group_names"
 
 - name: Enable UFW
   community.general.ufw:

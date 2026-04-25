@@ -20,29 +20,37 @@
   roles:
     - master
 
+# `all:!master` targets every host except those in the `master` group.
+# The `:all` union (instead of plain `nodes`) lets `install.sh` drive the
+# same playbook with `-i localhost, -c local` — localhost lives in `all`
+# but is not a member of `nodes`, and we must not require the operator
+# to declare a full inventory on a single-box install. The `!master`
+# exclusion keeps AmneziaWG/WireGuard/Marzban/agent from ever being
+# layered on top of the control plane in multi-host deployments.
+
 - name: Install AmneziaWG on nodes that declare it
-  hosts: nodes
+  hosts: all:!master
   become: true
   roles:
     - role: awg
       when: (kosatka_provider_type | default('awg')) in ['awg', 'amneziawg']
 
 - name: Install vanilla WireGuard on nodes that declare it
-  hosts: nodes
+  hosts: all:!master
   become: true
   roles:
     - role: wireguard
       when: (kosatka_provider_type | default('')) == 'wireguard'
 
 - name: Install Marzban on nodes that declare it
-  hosts: nodes
+  hosts: all:!master
   become: true
   roles:
     - role: marzban
       when: (kosatka_provider_type | default('')) == 'marzban'
 
 - name: Deploy the KOSATKA agent on every node and register it
-  hosts: nodes
+  hosts: all:!master
   become: true
   roles:
     - agent

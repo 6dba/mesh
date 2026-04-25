@@ -53,6 +53,23 @@
   delay: 3
   until: agent_health.status == 200
 
+- name: Detect public IP if running locally
+  ansible.builtin.uri:
+    url: https://ifconfig.me/ip
+    return_content: true
+  register: public_ip
+  when: ansible_host in ['localhost', '127.0.0.1'] or inventory_hostname in ['localhost', '127.0.0.1']
+
+- name: Set advertised address fact
+  ansible.builtin.set_fact:
+    # ifconfig.me returns the IP with a trailing newline; without `| trim`
+    # it ends up inside the node name (`node-1-2-3-4\n`) and the master
+    # URL (`http://1.2.3.4\n:8001`), which breaks registration and every
+    # subsequent master→agent HTTP call. `| trim` also keeps the branch
+    # that pulls from `ansible_host` / `inventory_hostname` harmless —
+    # those are already clean strings.
+    advertised_address: "{{ ((public_ip.content | default('')) | trim) or (ansible_host | default(inventory_hostname)) }}"
+
 - name: Register node with KOSATKA master
   ansible.builtin.uri:
     url: "{{ kosatka_master_url }}/api/v1/nodes/"
@@ -62,12 +79,9 @@
       Content-Type: "application/json"
     body_format: json
     body:
-      name: "{{ inventory_hostname }}"
-      address: "http://{{ ansible_host | default(inventory_hostname) }}:{{ agent_port | default(8001) }}"
+      name: "{{ inventory_hostname if inventory_hostname not in ['localhost', '127.0.0.1'] else ('node-' + advertised_address | replace('.', '-')) }}"
+      address: "http://{{ advertised_address }}:{{ agent_port | default(8001) }}"
       provider_type: "{{ kosatka_provider_type | default('awg') }}"
-    # 200 = existing node updated in-place (ansible re-run); 201 = new
-    # node inserted. Master upserts by name so 409 is not expected in
-    # practice but we keep it listed for safety against API changes.
     status_code: [200, 201, 409]
   delegate_to: localhost
   become: false

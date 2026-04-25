@@ -50,7 +50,12 @@ async def test_api_client_register_node(mock_config):
         mock_req.assert_called_once_with(
             "POST",
             "/nodes",
-            json={"name": "Node1", "address": "1.1.1.1", "provider_type": "agent"},
+            json={
+                "name": "Node1",
+                "address": "1.1.1.1",
+                "provider_type": "agent",
+                "api_key": None,
+            },
         )
 
 
